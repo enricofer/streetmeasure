@@ -4,71 +4,19 @@
 		<title></title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				background-color: #000000;
-				margin: 0px;
-				overflow: hidden;
-			}
-
-			#info {
-				position: absolute;
-				top: 0px; width: 100%;
-				color: #ffffff;
-				padding: 5px;
-				font-family:Monospace;
-				font-size:13px;
-				font-weight: bold;
-				text-align:center;
-			}
-
-			a {
-				color: #ffffff;
-			}
-
-
-            #pano_container {
-                position:absolute;
-                left:8px;
-                top:348px;
-                width:832px;
-                height:416px;
-                z-index:20;
-                display:block;
-                pointer-events:none;
-                border:2px black solid;
-            }
-            #depth_container {
-                position:absolute;
-                left:8px;
-                top:80px;
-                width:512px;
-                height:256px;
-                z-index:10;
-                display:block;
-                pointer-events:none;
-                border:2px black solid;
-            }
-            .hide {
-                opacity:0;
-                transition:opacity .5s ease-out;
-            }
-            .show {
-                opacity:1;
-                transition:opacity .5s ease-out;
-            }
-
-		</style>
+		<link type="text/css" rel="stylesheet" href="css/style.css" />
 	</head>
 	<body>
 
 		<div id="container"></div>
         <div id="pano_container" class="hide"></div>
-        <div id="depth_container" class="show"></div>
+        <div id="depth_container" class="hide"></div>
 		<div id="info">
 			<a href="http://threejs.org" target="_blank">three.js webgl</a> - equirectangular panorama demo
 		</div>
+        <div id="input_feedback" class="hide">Location not found</div>
         <div id="container"></div>
+        <input id="input_ctrl" type="text" placeholder="Search anywhere.." onkeydown="" onchange="">
 
         <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
 		<script src="https://unpkg.com/three@0.81.1/build/three.min.js"></script>
@@ -100,6 +48,11 @@
             var req_lat = gup('lat');
             var gsv = new google.maps.StreetViewService();
             var pid;
+            var gui = new dat.GUI();;
+            
+
+            var show_pano = false;
+            var show_depth = false;
             
             var measures = [];
             
@@ -167,6 +120,24 @@
                 return results[1];
             }
 
+            function my_location() {
+                clear_input();
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                            render_street_view_by_location(position.coords.latitude, position.coords.longitude);
+                            cur_lat = position.coords.latitude;
+                            cur_lng = position.coords.longitude;
+                        },
+                        function () {
+                            render_street_view_by_location(default_lat, default_lng);
+                        });
+                } else {
+                    render_street_view_by_location(default_lat, default_lng);
+                }
+            }
+
+
+
 			function init() {
                 
                 //var lat = 45.4077732232;
@@ -184,6 +155,7 @@
                         gsv.getPanoramaByLocation( latLng, 50, 
                             function (data, status) {
                                 if (status === google.maps.StreetViewStatus.OK) {
+                                    console.log(data);
                                     build_pano(data.location.pano);
                                 } else {
                                     console.error("Unable to get location");
@@ -195,11 +167,50 @@
                 }
             }
 
+
+            function get_links( pano_id) {
+                gui.destroy()
+                gui = new dat.GUI();
+                gui.add(this, "my_location").name("My location");
+                gui.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
+                    if (value)
+                        document.getElementById("pano_container").className = "show";
+                    else
+                        document.getElementById("pano_container").className = "hide";
+                });
+                gui.add(this, "show_depth", false).name("Show depth map").onChange(function (value) {
+                    if (value)
+                        document.getElementById("depth_container").className = "show";
+                    else
+                        document.getElementById("depth_container").className = "hide";
+                });
+                gsv.getPanorama({pano:pano_id},function (data,status){
+                    console.log(data.links);
+                    var f1 = gui.addFolder('Links');
+                    var gui_links = {}
+                    for (i=0; i<data.links.length; ++i) {
+                        var link = data.links[i];
+                        console.log(link);
+                        var label = link.heading.toFixed(2).toString()+' - '+link.description;
+                        gui_links[label] = function () {
+                            console.log(this.valueOf());
+                            build_pano(this.valueOf());
+                            //window.location="index.html?panoid="+this;
+                        };
+                        gui_links[label] = gui_links[label].bind(link.pano);
+                        f1.add(gui_links,label);
+                    }
+                })
+
+            }
+
             function build_pano( pano_id ) {
 
                 //toDataUrl("http://172.25.193.167/jpann/point2.png", function(base64Img) {console.log(base64Img);});
 
                 document.getElementById('info').innerHTML = "PANOID: "+pano_id
+
+                get_links(pano_id);
 
                 var pano_loader = new GSVPANO.PanoLoader({
                     zoom: 2
@@ -226,14 +237,19 @@
 
                 pano_loader.onPanoramaLoad = function () {
                     console.log("pano_loaded_start");
+
                     var pano_container = document.getElementById('pano_container');
                     while (pano_container.firstChild) {
                         pano_container.removeChild(pano_container.firstChild);
                     }
+                    this.canvas.id='pano_canvas';
                     pano_container.appendChild(this.canvas);
 
     				var container;
     				container = document.getElementById( 'container' );
+                    while (container.firstChild) {
+                        container.removeChild(container.firstChild);
+                    }
     
     				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1100 );
     				camera.target = new THREE.Vector3( 0, 0, 0 );
@@ -424,7 +440,7 @@
                     console.log(measures);
                     var measure_line = new THREE.Line3( measures[0].true_point, measures[1].true_point );
                     var view_line = new THREE.Line3( measures[0].view_point, measures[1].view_point );
-                    var measure_text = new SpriteText2D((measure_line.distance()*6/9.73).toFixed(2), {align: textAlign.right, font: '16px Arial bold', fillStyle: '#00ff00' });
+                    var measure_text = new SpriteText2D((measure_line.distance()*6/9.73).toFixed(2), {align: textAlign.right, font: '16px Arial', fillStyle: '#00ff00' });
                     measure_text.position.set (view_line.center().x,view_line.center().y,view_line.center().z);
                     scene.add(measure_text);
                     var measure_geom = new THREE.Geometry ();
