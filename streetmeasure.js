@@ -1,21 +1,24 @@
 
 var raycaster = new THREE.Raycaster(); 
 var mouse = new THREE.Vector2();
-var pano_map
+var pano_map;
 var depth_img, loaded;
 var relative_positions;
 var mesh, mesh_click;
+var fx_image;
+var tracker_map,tracker_marker;
 var textureLoader = new THREE.TextureLoader();
 var point_parameter = [
-        [ 0xffffff, textureLoader.load( "sprites/marker_1.png" ), 10 ],
+        [ 0xffffff, textureLoader.load("sprites/marker_1.png"), 10 ]
     ];
-var point1_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOwwAADsMBx2+oZAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAAAW0lEQVQ4T+2SwQoAIAhD9f8/eplkSUzvQYGX2tK9UgBCl+o5AJRqppmW2HZUoeHGKX7UHKNXTJxIznYDMsQbJtFxs3sWtBteuqTvnEemnZtMHqnN/D8Jf9eCywBg2TnnAAWR+wAAAABJRU5ErkJggg=='
+var point1_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAACZ0lEQVRYR8VXLXTCMBDOHBJZOYlETiInkchJJBKJQyKRlZOTk5NIJHJyEokbu8tfv1zSNinwtvfyVtrL3Xc/+e7ydL1e1b/+MYDspVRFcN9+ldrT+hKrpt8r+v6crY+dzxEmxa9sTItnLJI9MdAc3d0AlJqWGJbgGAiD7wLSDkCpOW2+JJQe6N2G1kysNcl/tOxZtYFIA+DwiVCT4h29q3rDqtSI5BjMGXVw3aT2xgDIc7Hxm35Pew3LYlZqTEY5Wlg3a6knBGBy7sNu8z8uNu7AUDRIRy0cWqC+AAAJH50wPbPnw41DREjXJ+j9oeeRA9EAgNDbKEwGe55OBxt26dhEADBfuuBKCCpHNnZQR8FEgNnLorPe91d7jlEhYwnKRWHuAVgK1R90vgYoz9lDurfgaI0A3uFDK2nkGOmUMeTlHD0hAOT52c2G2iJompkDcEEAfORcbu5X/QkggqrHugjpJR6RonZaGi1B0ZUDgJT5yBRwn2io2R1D7mLwIauPl3puj/skYFoAEB2PQQZ6jm/quLsUvARc/Tge8KeNwCwbJowL8f5p4JYetmbNtr4ZifAEHese6cA60882ytgNuXf744hCNwOgCUn0Gj/gyHlgKcLk2+ZQEOTIQgwk29aBxJLSTmyocYAoAgKe+0YHw0hQA6gYJxi78Uj/8wnKjHbILdxlWUc0YcVDqZkPolnOAjnYYo37RXNrCgzbfXz8kuNdGoDjATNeR3cDKKiznR0bek2P834GlCnsBmCiUZGRvSjOVoMAjiPhq72tdvoBNNFwF9MoxGCUL6xFF9R8ACl6NrPkTfPDH/6l79TQbkNBAAAAAElFTkSuQmCC';
+var point2_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAAAPklEQVQ4T2P8//8/A0UAZAAlmCLNYNdTYvtQMADkQ7AvcQc07jCAaSZgCA0NADmbIi8QmcCGfTogIhwoDgMAP03EWexlQvAAAAAASUVORK5CYII=';
 var req_pano_id = gup('panoid');
 var req_lon = gup('lon');
 var req_lat = gup('lat');
 var gsv = new google.maps.StreetViewService();
 var pid;
-var gui = new dat.GUI();;
+var gui = new dat.GUI();
 
 
 var show_pano = false;
@@ -31,22 +34,22 @@ var camera, scene, renderer;
 var material_invisible, material_grid, material_visible;
 
 var isUserInteracting = false,
-onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-lon = 0, onMouseDownLon = 0,
-lat = 0, onMouseDownLat = 0,
-phi = 0, theta = 0;
+    onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+    lon = 0, onMouseDownLon = 0,
+    lat = 0, onMouseDownLat = 0,
+    phi = 0, theta = 0;
 
 init();
 animate();
 
 
-function png2depth_map(url){
+function png2depth_map(url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.responseType = 'arraybuffer';
     
-    xhr.onload = function(e){
-        if (this.status == 200){
+    xhr.onload = function(e) {
+        if (this.status === 200) {
             var reader = new PNGReader(this.response);
             reader.parse(function(err, png){
                 if (err) throw err;
@@ -112,6 +115,9 @@ function downloadCanvas(div, filename) {
 
 
     html2canvas(div, {
+        logging: true,
+        useCORS: true,
+        allowTaint:true,
         onrendered: function(canvas) {
 
             link = document.createElement('a');
@@ -156,33 +162,23 @@ function toScreenPosition (xyz_point, camera) {
 
 }
 
-function extract_pattern () {
+function straighten_view () {
 
     for (i=0; i<features.length; ++i){
         scene.remove(features[i]);
     };
     features = [];
     update();
-    var T_canvas = document.getElementById("container").firstChild;
-    var extract_canvas = cloneCanvas(T_canvas);
-    var pattern_container = document.getElementById('pattern_container');
-    overlay_container = document.getElementById('overlay_container');
-    pattern_container = document.getElementById('pattern_container');
-    //pattern_container.style["z-index"] = 1000;
-    while (pattern_container.firstChild) {
-        pattern_container.removeChild(pattern_container.firstChild);
-    };
-    pattern_container.appendChild(extract_canvas);
-    
-    overlay_container.className = "show";
+
+    var extract_canvas = document.getElementById("container").firstChild; //cloneCanvas(T_canvas);
 
     //compute transformations
     var transf_array = []
-    var trans_padding_factor = 0.1;
+    var trans_padding_factor = 0.2;
     var out_width = extract_canvas.offsetWidth;
     var out_height = extract_canvas.offsetHeight;
-    var trans_axis_x = out_width*(1-trans_padding_factor);
-    var trans_axis_y = out_height*(1-trans_padding_factor);
+    var trans_axis_x = out_width*(1-trans_padding_factor*2);
+    var trans_axis_y = out_height*(1-trans_padding_factor*2);
 
     // assuming ortho transformed input so calculating mean distance
     var mean_dist0 = (plan_definition.distances[0]+plan_definition.distances[2])/2;
@@ -190,17 +186,23 @@ function extract_pattern () {
 
     //trasform coordinates assuming screen x > screen y = landscape screen
     if (mean_dist0>mean_dist1){ 
-    	var max_axis = trans_axis_x;
-    	var min_axis = mean_dist1*max_axis/mean_dist0;
-    } else {
-    	var max_axis = trans_axis_y;
-    	var min_axis = mean_dist0*max_axis/mean_dist1;
-    }
+        var max_axis = trans_axis_x;
+        var min_axis = mean_dist1*max_axis/mean_dist0;
 
-    var trans_bl = [out_width/2-max_axis/2,out_height/2+min_axis/2];
-    var trans_br = [out_width/2+max_axis/2,out_height/2+min_axis/2];
-    var trans_tl = [out_width/2-max_axis/2,out_height/2-min_axis/2];
-    var trans_tr = [out_width/2+max_axis/2,out_height/2-min_axis/2];
+        var trans_bl = [out_width/2-max_axis/2,out_height/2+min_axis/2];
+        var trans_br = [out_width/2+max_axis/2,out_height/2+min_axis/2];
+        var trans_tl = [out_width/2-max_axis/2,out_height/2-min_axis/2];
+        var trans_tr = [out_width/2+max_axis/2,out_height/2-min_axis/2];
+
+    } else {
+        var max_axis = trans_axis_y;
+        var min_axis = mean_dist0*max_axis/mean_dist1;
+
+        var trans_bl = [out_width/2-min_axis/2,out_height/2+max_axis/2];
+        var trans_br = [out_width/2+min_axis/2,out_height/2+max_axis/2];
+        var trans_tl = [out_width/2-min_axis/2,out_height/2-max_axis/2];
+        var trans_tr = [out_width/2+min_axis/2,out_height/2-max_axis/2];
+    }
 
     var source_array = [];
     source_array.push(toScreenPosition(plan_definition.measures[0].view_point,camera)); //bottom-left origin point
@@ -217,34 +219,42 @@ function extract_pattern () {
     function serialize_point_array(array){
         res = [];
         for (i=0; i<array.length; ++i){
-            res.push(array[i][0]);
-            res.push(array[i][1]);
+            res.push(parseInt(array[i][0]));
+            res.push(parseInt(array[i][1]));
         }
         return res;
     };
-    //transform2d(extract_canvas,trasf_array);
-    console.log(serialize_point_array(source_array));
-    console.log(serialize_point_array(dest_array));
 
-    var transform = PerspT(serialize_point_array(source_array), serialize_point_array(dest_array));
-    var t = transform.coeffs;
-        t = [t[0], t[3], 0, t[6],
-        t[1], t[4], 0, t[7],
-        0   , 0   , 1, 0   ,
-        t[2], t[5], 0, t[8]];
-    console.log(t);
+    fx_canvas = fx.canvas();
 
-    t = "matrix3d(" + t.join(", ") + ")";
-    extract_canvas.style["-webkit-transform"] = t;
-    extract_canvas.style["-webkit-transform-origin"] = "300 300";
-    extract_canvas.style["-moz-transform"] = t;
-    extract_canvas.style["-o-transform"] = t;
-    extract_canvas.style.transform = t;
-    extract_canvas.style["transform-origin"] = "top left";
+    var fx_texture = fx_canvas.texture(extract_canvas);
 
-    downloadCanvas(extract_canvas, 'projection.png');
+    //glfx.js do the magic
+    console.log(serialize_point_array(source_array), serialize_point_array(dest_array))
+    fx_canvas.draw(fx_texture).perspective(serialize_point_array(source_array), serialize_point_array(dest_array)).update();
 
+    var pattern_container = document.getElementById('pattern_container');
+    var overlay_container = document.getElementById('overlay_container');
+    pattern_container = document.getElementById('pattern_container');
+    while (pattern_container.firstChild) {
+        pattern_container.removeChild(pattern_container.firstChild);
+    };
+    pattern_container.appendChild(fx_canvas);
+    
+    overlay_container.className = "show";
+    container.className = "hide";
+    
+    fx_image = fx_canvas.toDataURL('image/png')
+
+    /*
+    link = document.createElement('a');
+    document.body.appendChild(link);
+    link.href = fx_canvas.toDataURL('image/png');
+    link.download = 'projection.png';
+    link.click();  */  
+    
 }
+
 
 function init() {
 
@@ -253,6 +263,26 @@ function init() {
         event.preventDefault();
         var overlay_container = document.getElementById('overlay_container');
         overlay_container.className = "hide";
+        var main_container = document.getElementById("container")
+        main_container.className = "show";
+    });
+
+    $('#boxsave').click(function(event){
+        event.stopPropagation();
+        event.preventDefault();
+        link = document.createElement('a');
+        document.body.appendChild(link);
+        link.href = fx_image;
+        link.download = 'projection.png';
+        link.click();   
+    });
+
+    $('#tracker_map').mousedown(function(event){
+        event.stopPropagation();
+    });
+
+    $('#tracker_map').dblclick(function(event){
+        event.stopPropagation();
     });
 
     $('#pattern_container').click(function(event){
@@ -261,6 +291,35 @@ function init() {
     });
     
     console.log (req_pano_id,parseFloat(req_lat), parseFloat(req_lon));
+
+    var tracker_map_options = {
+        disableDoubleClickZoom: true,
+        draggable: true,
+        scrollwheel: true,
+        panControl: false,
+        disableDefaultUI: true,
+        zoom: 17
+    };
+    tracker_map = new google.maps.Map(document.getElementById('tracker_map'), tracker_map_options);
+    tracker_marker =  new google.maps.Marker({map: tracker_map});
+
+    var streetViewLayer = new google.maps.StreetViewCoverageLayer();
+    streetViewLayer.setMap(tracker_map);
+    google.maps.event.addListener(tracker_map, "dblclick", function (ev) { 
+        gsv.getPanoramaByLocation( ev.latLng, 50, 
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    console.log(data);
+                    build_pano(data.location.pano);
+                } else {
+                    console.error("Unable to get location");
+                };
+        })
+        event.preventDefault();
+    });
+    google.maps.event.addListener(tracker_map, "click", function (ev) { 
+        event.preventDefault();
+    });
 
     if (req_pano_id != "") {
         build_pano(req_pano_id);
@@ -290,6 +349,13 @@ function get_links( pano_id) {
         console.log('baubau');
     }
     gui.add(this, pano_id).name(pano_id);
+    this.check_tracker_map = true;
+    gui.add(this, "check_tracker_map", true).name("Show tracker map").onChange(function (value) {
+        if (value)
+            document.getElementById("tracker_map").className = "show";
+        else
+            document.getElementById("tracker_map").className = "hide";
+    });
     gui.add(this, "show_pano", false).name("Show pano image").onChange(function (value) {
         if (value)
             document.getElementById("pano_container").className = "show";
@@ -310,7 +376,7 @@ function get_links( pano_id) {
             mesh_click.material = material_invisible;
         }
     });
-    gui.add(this, "extract_pattern").name("extract_pattern");
+    gui.add(this, "straighten_view").name("straighten panorama view");
 
     gsv.getPanorama({pano:pano_id},function (data,status){
         console.log(data.links);
@@ -349,6 +415,12 @@ function build_pano( pano_id ) {
         function (data, status) {
             if (status === google.maps.StreetViewStatus.OK) {
                 pano_loader.load(new google.maps.LatLng(data.location.latLng.lat(), data.location.latLng.lng()));
+                tracker_map.setCenter({
+                    lat: data.location.latLng.lat(),
+                    lng: data.location.latLng.lng()
+                });
+                tracker_marker.setPosition(data.location.latLng);
+                
             } else {
                 console.error("Unable to get starting pano ID ");
             }
@@ -567,14 +639,23 @@ function onDocumentDblclick( event ) {
     if (relative_positions[map_y][map_x].d < 1000.0) { // check if click point has valid distance, otherwise is in depth map
         var geometry = new THREE.Geometry()
         geometry.vertices.push( new THREE.Vector3(intersect[0].point.x,intersect[0].point.y,intersect[0].point.z));
-        var material = new THREE.PointsMaterial( { 
-            size: 15, 
+        var material2 = new THREE.PointsMaterial( { 
+            size: 16, 
+            map: new THREE.TextureLoader().load( point2_texture ), 
+            sizeAttenuation: false, 
+            transparent : true } );
+        material2.color.setHSL( 1.0, 1.0, 1.0 );
+        var material1 = new THREE.PointsMaterial( { 
+            size: 32, 
             map: new THREE.TextureLoader().load( point1_texture ), 
             sizeAttenuation: false, 
             transparent : true } );
-        material.color.setHSL( 1.0, 1.0, 1.0 );
-        var puntatore = new THREE.Points( geometry, material );
-        scene.add( puntatore );
+        material2.color.setHSL( 1.0, 1.0, 1.0 );
+        var puntatore1 = new THREE.Points( geometry, material1 );
+        var puntatore2 = new THREE.Points( geometry, material2 );
+        scene.add( puntatore1 );
+        scene.add( puntatore2 );
+        features.push(puntatore1);
 
         var SpriteText2D = THREE_Text.SpriteText2D;
         var textAlign = THREE_Text.textAlign;
