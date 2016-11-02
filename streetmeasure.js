@@ -7,6 +7,7 @@ var relative_positions;
 var mesh, mesh_click;
 var fx_image;
 var tracker_map,tracker_marker;
+var root_object = 0, root_helper_object = 0;
 var textureLoader = new THREE.TextureLoader();
 var point_parameter = [
         [ 0xffffff, textureLoader.load("sprites/marker_1.png"), 10 ]
@@ -19,6 +20,8 @@ var req_lat = gup('lat');
 var gsv = new google.maps.StreetViewService();
 var pid;
 var gui = new dat.GUI();
+var quality_factor = 2;
+var border_amount = 0.1;
 
 
 var show_pano = false;
@@ -174,7 +177,7 @@ function straighten_view () {
 
     //compute transformations
     var transf_array = []
-    var trans_padding_factor = 0.2;
+    var trans_padding_factor = border_amount;
     var out_width = extract_canvas.offsetWidth;
     var out_height = extract_canvas.offsetHeight;
     var trans_axis_x = out_width*(1-trans_padding_factor*2);
@@ -303,6 +306,8 @@ function init() {
     tracker_map = new google.maps.Map(document.getElementById('tracker_map'), tracker_map_options);
     tracker_marker =  new google.maps.Marker({map: tracker_map});
 
+    scene = new THREE.Scene();
+
     var streetViewLayer = new google.maps.StreetViewCoverageLayer();
     streetViewLayer.setMap(tracker_map);
     google.maps.event.addListener(tracker_map, "dblclick", function (ev) { 
@@ -315,10 +320,6 @@ function init() {
                     console.error("Unable to get location");
                 };
         })
-        event.preventDefault();
-    });
-    google.maps.event.addListener(tracker_map, "click", function (ev) { 
-        event.preventDefault();
     });
 
     if (req_pano_id != "") {
@@ -350,6 +351,8 @@ function get_links( pano_id) {
     }
     gui.add(this, pano_id).name(pano_id);
     this.check_tracker_map = true;
+    this.quality = quality_factor;
+    this.border = border_amount;
     gui.add(this, "check_tracker_map", true).name("Show tracker map").onChange(function (value) {
         if (value)
             document.getElementById("tracker_map").className = "show";
@@ -376,12 +379,26 @@ function get_links( pano_id) {
             mesh_click.material = material_invisible;
         }
     });
-    gui.add(this, "straighten_view").name("straighten panorama view");
+    gui.add(this, "quality").min(1).max(6).step(1).name("Pano_quality").onChange(function (value) {
+        quality_factor = value;
+        build_pano( pano_id )
+    });
+    gui.add(this, "border").min(0).max(0.6).step(0.1).name("Border_amount").onChange(function (value) {
+        border_amount = value;
+    });
+
+    gui.add(this, "straighten_view").name("Straighten_pano");
 
     gsv.getPanorama({pano:pano_id},function (data,status){
         console.log(data.links);
         var f1 = gui.addFolder('Links');
         var gui_links = {}
+
+        var old_root_object = root_object;
+        var old_root_helper_object = root_helper_object;
+        root_helper_object = new THREE.Object3D();
+        scene.add(root_helper_object);
+
         for (i=0; i<data.links.length; ++i) {
             var link = data.links[i];
             console.log(link);
@@ -392,10 +409,39 @@ function get_links( pano_id) {
             };
             gui_links[label] = gui_links[label].bind(link.pano);
             f1.add(gui_links,label);
+
+            //update direction helpers
+            var helper_geometry_base = new THREE.Object3D();
+            var helper_shape = new THREE.Shape();
+            helper_shape.moveTo(0, 0);
+            helper_shape.lineTo(-2.5, -2.5);
+            helper_shape.lineTo(2.5, -2.5);
+            helper_shape.lineTo(0, 0);
+            var extrudeSettings = {
+                amount: 0.005
+            };
+            extrudeSettings.bevelEnabled = false;
+            var helper_geometry = new THREE.ExtrudeGeometry(helper_shape, extrudeSettings);
+            var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshNormalMaterial())
+            helper_mesh.rotation.x = Math.PI / 2.0;
+            helper_mesh.rotation.z = Math.PI / 2.0;
+            helper_mesh.position.x = -16;
+            helper_mesh.position.y = -5;
+            helper_mesh.userData = link.pano;
+            if (link.heading > 0) {var heading = link.heading} else {var heading = 360 + link.heading}
+             
+            helper_geometry_base.rotation.y = Math.PI + heading * Math.PI / 180.0;
+            helper_geometry_base.add(helper_mesh);
+            root_helper_object.add(helper_geometry_base);
+            if (old_root_helper_object) {
+                scene.remove(old_root_helper_object);
+            }
+
         }
     })
 
 }
+
 
 function build_pano( pano_id ) {
 
@@ -405,16 +451,15 @@ function build_pano( pano_id ) {
 
     get_links(pano_id);
 
-    var pano_loader = new GSVPANO.PanoLoader({
-        zoom: 2
-    });
+    var pano_loader = new PANOMNOM.GoogleStreetViewLoader();
     var depth_loader = new GSVPANO.PanoDepthLoader();
     
 
     gsv.getPanoramaById(pano_id,
         function (data, status) {
             if (status === google.maps.StreetViewStatus.OK) {
-                pano_loader.load(new google.maps.LatLng(data.location.latLng.lat(), data.location.latLng.lng()));
+                //pano_loader.load(new google.maps.LatLng(data.location.latLng.lat(), data.location.latLng.lng()));
+                pano_loader.load( pano_id, quality_factor );
                 tracker_map.setCenter({
                     lat: data.location.latLng.lat(),
                     lng: data.location.latLng.lng()
@@ -429,12 +474,12 @@ function build_pano( pano_id ) {
     //pano_loader.load(new google.maps.LatLng(lat, lon));
     
 
-    pano_loader.onError = function(message){
-        console.log('PanoLoaderError:' + message)
-    };
+    //pano_loader.onError = function(message){
+    //    console.log('PanoLoaderError:' + message)
+    //};
 
 
-    pano_loader.onPanoramaLoad = function () {
+    pano_loader.addEventListener( 'load', function() {
         console.log("pano_loaded_start");
 
         var pano_container = document.getElementById('pano_container');
@@ -453,10 +498,8 @@ function build_pano( pano_id ) {
         camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1100 );
         camera.target = new THREE.Vector3( 0, 0, 0 );
 
-        scene = new THREE.Scene();
-
         var geometry = new THREE.SphereGeometry( 500, 120, 80 );
-        geometry.scale( 1, 1, 1 );
+        geometry.scale( -1, 1, 1 );
         
         var pano_texture = new THREE.Texture(this.canvas);
 
@@ -488,7 +531,7 @@ function build_pano( pano_id ) {
         console.log(this.panoId);
         depth_loader.load(this.panoId);
 
-    }
+    });
 
     depth_loader.onDepthLoad = function () {
         console.log("depth_loaded_start");
@@ -498,11 +541,12 @@ function build_pano( pano_id ) {
         canvas.setAttribute('height', this.depthMap.height);
         var image = context.getImageData(0, 0, this.depthMap.width, this.depthMap.height);
         for (var y = 0; y < this.depthMap.height; ++y) {
-            for (var x = this.depthMap.width; x > 0 ; --x) {
-                var col = this.depthMap.depthMap[y * this.depthMap.width + x] / 50 * 255;
+            //for (var x = this.depthMap.width; x > 0 ; --x) {
+            for (var x = 0; x < this.depthMap.width ; ++x) {
+                var col = this.depthMap.depthMap[y * this.depthMap.width - x] / 50 * 255;
                 image.data[4 * (y * this.depthMap.width + x) + 0] = col;
                 image.data[4 * (y * this.depthMap.width + x) + 1] = col;
-                image.data[4 * (y * this.depthMap.width + x) + 2] = col;
+                image.data[4 * (y * this.depthMap.width + x) + 2] = 0;
                 image.data[4 * (y * this.depthMap.width + x) + 3] = 255;
             }
         }
@@ -515,7 +559,7 @@ function build_pano( pano_id ) {
         depth_container.appendChild(canvas);
 
         var geometry_click = new THREE.SphereGeometry( 400, 120, 80 );
-        geometry_click.scale( 1, 1, 1 );
+        geometry_click.scale( -1, 1, 1 );
         
         var depth_texture = new THREE.Texture(canvas);
 
@@ -563,7 +607,7 @@ function build_pano( pano_id ) {
             var lat = (y / this.depthMap.height) * 180.0 - 90.0;
             var r = Math.cos(lat * Math.PI / 180.0);
             var row_positions = [];
-            for (var x = this.depthMap.width; x > 0 ; --x) {
+            for (var x = 0; x < this.depthMap.width ; ++x) {
                 var depth = parseFloat(this.depthMap.depthMap[y * this.depthMap.width + (this.depthMap.width - x)]);
                 var lng = (1-(x / this.depthMap.width)) * 360.0 - 180.0;
                 var pos = new THREE.Vector3();
@@ -606,6 +650,15 @@ function onDocumentMouseDown( event ) {
     onPointerDownLon = lon;
     onPointerDownLat = lat;
 
+    mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+    raycaster.setFromCamera( mouse, camera );
+
+    var intersects_helper = raycaster.intersectObject( root_helper_object, true );
+    if (intersects_helper.length > 0 && intersects_helper[0].object.userData.length > 0) {
+        build_pano(intersects_helper[0].object.userData);
+    }
+
 }
 
 function onDocumentDblclick( event ) {
@@ -630,6 +683,7 @@ function onDocumentDblclick( event ) {
     mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
     raycaster.setFromCamera( mouse, camera );
+
     var intersect = raycaster.intersectObject( mesh_click );
     console.log(intersect[0].point);
     console.log(intersect[0].uv);
@@ -663,7 +717,7 @@ function onDocumentDblclick( event ) {
     
         var depth_txt = depth_img.getImageData(map_x, map_y, 1, 1).data.toString();
         var depth_txt = relative_positions[map_y][map_x].d.toFixed(2).toString();
-        var text2 = new SpriteText2D(depth_txt, {align: textAlign.right, font: '12px Arial', fillStyle: '#ff0000' });
+        var text2 = new SpriteText2D(depth_txt, {/*align: textAlign.right,*/ font: '12px Arial', fillStyle: '#ff0000' });
         text2.position.set(intersect[0].point.x,intersect[0].point.y,intersect[0].point.z);
         text2.name = "text2";
         scene.add(text2);
