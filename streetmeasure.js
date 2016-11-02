@@ -258,8 +258,43 @@ function straighten_view () {
     
 }
 
+function clear (){
+    features = [];
+    measures = [];
+    for (i=scene.children.length - 1; i > 0; --i){
+        obj = scene.children[i]
+        if (!((obj === mesh)||(obj === mesh_click)||(obj === root_helper_object))){
+            scene.remove(obj);
+        }
+    }
+}
 
 function init() {
+    
+    // hack Google Maps to bypass API v3 key (needed since 22 June 2016 http://googlegeodevelopers.blogspot.com.es/2016/06/building-for-scale-updates-to-google.html)
+    var target = document.head;
+    var observer = new MutationObserver(function(mutations) {
+        for (var i = 0; mutations[i]; ++i) { // notify when script to hack is added in HTML head
+            if (mutations[i].addedNodes[0].nodeName == "SCRIPT" && mutations[i].addedNodes[0].src.match(/\/AuthenticationService.Authenticate?/g)) {
+                var str = mutations[i].addedNodes[0].src.match(/[?&]callback=.*[&$]/g);
+                if (str) {
+                    if (str[0][str[0].length - 1] == '&') {
+                        str = str[0].substring(10, str[0].length - 1);
+                    } else {
+                        str = str[0].substring(10);
+                    }
+                    var split = str.split(".");
+                    var object = split[0];
+                    var method = split[1];
+                    window[object][method] = null; // remove censorship message function _xdc_._jmzdv6 (AJAX callback name "_jmzdv6" differs depending on URL)
+                    //window[object] = {}; // when we removed the complete object _xdc_, Google Maps tiles did not load when we moved the map with the mouse (no problem with OpenStreetMap)
+                }
+                observer.disconnect();
+            }
+        }
+    });
+    var config = { attributes: true, childList: true, characterData: true }
+    observer.observe(target, config);
 
     $('#boxclose').click(function(event){
         event.stopPropagation();
@@ -387,7 +422,9 @@ function get_links( pano_id) {
         border_amount = value;
     });
 
-    gui.add(this, "straighten_view").name("Straighten_pano");
+    gui.add(this, "clear").name("Clear measures");
+
+    gui.add(this, "straighten_view").name("Straighten");
 
     gsv.getPanorama({pano:pano_id},function (data,status){
         console.log(data.links);
@@ -422,7 +459,7 @@ function get_links( pano_id) {
             };
             extrudeSettings.bevelEnabled = false;
             var helper_geometry = new THREE.ExtrudeGeometry(helper_shape, extrudeSettings);
-            var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshNormalMaterial())
+            var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshBasicMaterial())
             helper_mesh.rotation.x = Math.PI / 2.0;
             helper_mesh.rotation.z = Math.PI / 2.0;
             helper_mesh.position.x = -16;
@@ -448,7 +485,8 @@ function build_pano( pano_id ) {
     //toDataUrl("http://172.25.193.167/jpann/point2.png", function(base64Img) {console.log(base64Img);});
 
     document.getElementById('info').innerHTML = "PANOID: "+pano_id
-
+    
+    clear();
     get_links(pano_id);
 
     var pano_loader = new PANOMNOM.GoogleStreetViewLoader();
