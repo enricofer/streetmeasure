@@ -17,7 +17,11 @@ start with panoid parameter if known
 or lon and lat parameters
     https://enricofer.github.io/streetmeasure/?lat=45.39245781749395&lon=11.871457844297083
 
-If the provided panoid is valid or the requested lon and lat is covered by google street view service, will be loaded the panorama location as equirectangular projection on witch is possible to obtain measures on the panorama. Double clicking on panorama makes a measurement point. With further double clicks distances (meters) between measurements points are obtained. Four measurements points shape an extraction polygon assumed to be a rectangle in the reality used as guide for straightening the panorama image. The points for a right image processing must be provided counterclockwise from bottom/left to bottom/right to top/right to top/left.
+If the provided panoid is valid or the requested lon and lat is covered by google street view service, will be loaded the panorama location as equirectangular projection on witch is possible to obtain measures on the panorama. Double clicking on panorama makes a measurement point. With further double clicks distances (meters) between measurements points are obtained. 
+
+Four measurements points shape an extraction polygon assumed to be a rectangle in the reality used as guide for straightening the panorama image. The points for a right image processing must be provided counterclockwise from bottom/left to bottom/right to top/right to top/left.
+
+Double clicking on tracker map or on arrows on screen to move panorama without leaving the application.
 
 ![](doc/screen1.png)
 
