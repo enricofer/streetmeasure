@@ -267,8 +267,8 @@ function clear (){
     measures = [];
     for (i=scene.children.length - 1; i > 0; --i){
         obj = scene.children[i]
-        //if (!((obj === mesh)||(obj === mesh_click)||(obj === root_helper_object))){scene.remove(obj);}
-        scene.remove(obj);
+        if (!((obj === mesh)||(obj === mesh_click)||(obj === root_helper_object))){scene.remove(obj);}
+        //scene.remove(obj);
     }
 }
 
@@ -462,8 +462,8 @@ function get_links( pano_id) {
             var helper_geometry_base = new THREE.Object3D();
             var helper_shape = new THREE.Shape();
             helper_shape.moveTo(0, 0);
-            helper_shape.lineTo(-2.5, -2.5);
-            helper_shape.lineTo(2.5, -2.5);
+            helper_shape.lineTo(-2.5, 1.5);
+            helper_shape.lineTo(2.5, 1.5);
             helper_shape.lineTo(0, 0);
             var extrudeSettings = {
                 amount: 0.005
@@ -473,12 +473,12 @@ function get_links( pano_id) {
             var helper_mesh = new THREE.Mesh(helper_geometry, new THREE.MeshBasicMaterial())
             helper_mesh.rotation.x = Math.PI / 2.0;
             helper_mesh.rotation.z = Math.PI / 2.0;
-            helper_mesh.position.x = -16;
+            helper_mesh.position.x = 16;
             helper_mesh.position.y = -5;
             helper_mesh.userData = link.pano;
             if (link.heading > 0) {var heading = link.heading} else {var heading = 360 + link.heading}
              
-            helper_geometry_base.rotation.y = Math.PI + heading * Math.PI / 180.0;
+            helper_geometry_base.rotation.y = heading * Math.PI / 180.0;
             helper_geometry_base.add(helper_mesh);
             root_helper_object.add(helper_geometry_base);
             if (old_root_helper_object) {
@@ -561,6 +561,10 @@ function build_pano( pano_id ) {
         
         pano_texture.needsUpdate = true;
 
+        if (mesh != null){
+            scene.remove( mesh );
+        }
+        
         mesh = new THREE.Mesh( geometry, material );
         scene.add( mesh );
 
@@ -644,8 +648,12 @@ function build_pano( pano_id ) {
         } );
 
         depth_texture.needsUpdate = true;
-        mesh_click = new THREE.Mesh( geometry_click, material_invisible );
         
+        if (mesh_click != null){
+            scene.remove( mesh_click );
+        }
+        
+        mesh_click = new THREE.Mesh( geometry_click, material_invisible );
         scene.add( mesh_click );
 
         depth_img = context;
