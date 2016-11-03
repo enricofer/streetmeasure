@@ -199,48 +199,35 @@ h2 {
     transition:opacity .5s ease-out;
 }
 
-a.boxclose{
+#boxbtn{
     position:absolute;
     left:20px;
     bottom:20px;
     cursor:pointer;
-    color: #fff;
-    border: 1px solid #AEAEAE;
-    border-radius: 40px;
-    background: #605F61;
-    font-size: 31px;
-    font-weight: bold;
-    display: inline-block;
-    line-height: 3px;
-    padding: 10px 2px;
     z-index:1001;      
 }
 
-.boxclose:before {
-    content: "x";
-
-}
-
-a.boxsave{
+#progress_icon{
     position:absolute;
-    left:60px;
-    bottom:20px;
-    cursor:pointer;
-    color: #fff;
-    border: 1px solid #AEAEAE;
-    border-radius: 40px;
-    background: #605F61;
-    font-size: 31px;
-    font-weight: bold;
-    display: inline-block;
-    line-height: 3px;
-    padding: 10px 2px;
-    z-index:1001;     
+    top:40%;
+    bottom:40%;
+    right:40%;
+    left:40%;
+    background: url('ajax-loader.gif') no-repeat center center;
+    z-index:10001;      
 }
 
-.boxsave:before {
-    content: "s";
-
+.btn {
+    background-color: #000000; /* Green */
+    border: 2px solid #222222;
+    color: white;
+    padding: 10px 20px;
+    margin: 3p;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    float: left;
 }
 
 

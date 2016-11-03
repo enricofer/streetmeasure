@@ -5,6 +5,7 @@ var pano_map;
 var depth_img, loaded;
 var relative_positions;
 var mesh, mesh_click;
+var without_measures = true;
 var fx_image;
 var tracker_map,tracker_marker;
 var root_object = 0, root_helper_object = 0;
@@ -12,10 +13,10 @@ var textureLoader = new THREE.TextureLoader();
 var point_parameter = [
         [ 0xffffff, textureLoader.load("sprites/marker_1.png"), 10 ]
     ];
-var point1_texture_dataurl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAACZ0lEQVRYR8VXLXTCMBDOHBJZOYlETiInkchJJBKJQyKRlZOTk5NIJHJyEokbu8tfv1zSNinwtvfyVtrL3Xc/+e7ydL1e1b/+MYDspVRFcN9+ldrT+hKrpt8r+v6crY+dzxEmxa9sTItnLJI9MdAc3d0AlJqWGJbgGAiD7wLSDkCpOW2+JJQe6N2G1kysNcl/tOxZtYFIA+DwiVCT4h29q3rDqtSI5BjMGXVw3aT2xgDIc7Hxm35Pew3LYlZqTEY5Wlg3a6knBGBy7sNu8z8uNu7AUDRIRy0cWqC+AAAJH50wPbPnw41DREjXJ+j9oeeRA9EAgNDbKEwGe55OBxt26dhEADBfuuBKCCpHNnZQR8FEgNnLorPe91d7jlEhYwnKRWHuAVgK1R90vgYoz9lDurfgaI0A3uFDK2nkGOmUMeTlHD0hAOT52c2G2iJompkDcEEAfORcbu5X/QkggqrHugjpJR6RonZaGi1B0ZUDgJT5yBRwn2io2R1D7mLwIauPl3puj/skYFoAEB2PQQZ6jm/quLsUvARc/Tge8KeNwCwbJowL8f5p4JYetmbNtr4ZifAEHese6cA60882ytgNuXf744hCNwOgCUn0Gj/gyHlgKcLk2+ZQEOTIQgwk29aBxJLSTmyocYAoAgKe+0YHw0hQA6gYJxi78Uj/8wnKjHbILdxlWUc0YcVDqZkPolnOAjnYYo37RXNrCgzbfXz8kuNdGoDjATNeR3cDKKiznR0bek2P834GlCnsBmCiUZGRvSjOVoMAjiPhq72tdvoBNNFwF9MoxGCUL6xFF9R8ACl6NrPkTfPDH/6l79TQbkNBAAAAAElFTkSuQmCC';
+var point1_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAACZ0lEQVRYR8VXLXTCMBDOHBJZOYlETiInkchJJBKJQyKRlZOTk5NIJHJyEokbu8tfv1zSNinwtvfyVtrL3Xc/+e7ydL1e1b/+MYDspVRFcN9+ldrT+hKrpt8r+v6crY+dzxEmxa9sTItnLJI9MdAc3d0AlJqWGJbgGAiD7wLSDkCpOW2+JJQe6N2G1kysNcl/tOxZtYFIA+DwiVCT4h29q3rDqtSI5BjMGXVw3aT2xgDIc7Hxm35Pew3LYlZqTEY5Wlg3a6knBGBy7sNu8z8uNu7AUDRIRy0cWqC+AAAJH50wPbPnw41DREjXJ+j9oeeRA9EAgNDbKEwGe55OBxt26dhEADBfuuBKCCpHNnZQR8FEgNnLorPe91d7jlEhYwnKRWHuAVgK1R90vgYoz9lDurfgaI0A3uFDK2nkGOmUMeTlHD0hAOT52c2G2iJompkDcEEAfORcbu5X/QkggqrHugjpJR6RonZaGi1B0ZUDgJT5yBRwn2io2R1D7mLwIauPl3puj/skYFoAEB2PQQZ6jm/quLsUvARc/Tge8KeNwCwbJowL8f5p4JYetmbNtr4ZifAEHese6cA60882ytgNuXf744hCNwOgCUn0Gj/gyHlgKcLk2+ZQEOTIQgwk29aBxJLSTmyocYAoAgKe+0YHw0hQA6gYJxi78Uj/8wnKjHbILdxlWUc0YcVDqZkPolnOAjnYYo37RXNrCgzbfXz8kuNdGoDjATNeR3cDKKiznR0bek2P834GlCnsBmCiUZGRvSjOVoMAjiPhq72tdvoBNNFwF9MoxGCUL6xFF9R8ACl6NrPkTfPDH/6l79TQbkNBAAAAAElFTkSuQmCC';
 var point2_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAAAPklEQVQ4T2P8//8/A0UAZAAlmCLNYNdTYvtQMADkQ7AvcQc07jCAaSZgCA0NADmbIi8QmcCGfTogIhwoDgMAP03EWexlQvAAAAAASUVORK5CYII=';
-var point1_texture = 'sprites/point7.png'
-var point2_texture = 'sprites/point4.png'
+//var point1_texture = 'sprites/point7.png'
+//var point2_texture = 'sprites/point4.png'
 var req_pano_id = gup('panoid');
 var req_lon = gup('lon');
 var req_lat = gup('lat');
@@ -169,19 +170,25 @@ function toScreenPosition (xyz_point, camera) {
 
 function straighten_view () {
 
-    for (i=0; i<features.length; ++i){
-        scene.remove(features[i]);
-    };
-    features = [];
-    update();
+    if (without_measures) {
+        for (i=0; i<features.length; ++i){
+            //scene.remove(features[i]);
+            features[i].visible = false;
+        };
+        //features = [];
+        update();
+    }
 
     var extract_canvas = document.getElementById("container").firstChild; //cloneCanvas(T_canvas);
+    var bak_width = extract_canvas.style.width;
+    var bak_height = extract_canvas.style.height;
+
 
     //compute transformations
     var transf_array = []
     var trans_padding_factor = border_amount;
-    var out_width = extract_canvas.offsetWidth;
-    var out_height = extract_canvas.offsetHeight;
+    var out_width = extract_canvas.offsetWidth; //parseInt(extract_canvas.style.width.replace('px',''));
+    var out_height = extract_canvas.offsetHeight; //parseInt(extract_canvas.style.height.replace('px',''));
     var trans_axis_x = out_width*(1-trans_padding_factor*2);
     var trans_axis_y = out_height*(1-trans_padding_factor*2);
 
@@ -237,6 +244,8 @@ function straighten_view () {
     //glfx.js do the magic
     console.log(serialize_point_array(source_array), serialize_point_array(dest_array))
     fx_canvas.draw(fx_texture).perspective(serialize_point_array(source_array), serialize_point_array(dest_array)).update();
+    fx_canvas.style.width = bak_width;
+    fx_canvas.style.height = bak_height;
 
     var pattern_container = document.getElementById('pattern_container');
     var overlay_container = document.getElementById('overlay_container');
@@ -250,13 +259,6 @@ function straighten_view () {
     container.className = "hide";
     
     fx_image = fx_canvas.toDataURL('image/png')
-
-    /*
-    link = document.createElement('a');
-    document.body.appendChild(link);
-    link.href = fx_canvas.toDataURL('image/png');
-    link.download = 'projection.png';
-    link.click();  */  
     
 }
 
@@ -265,9 +267,8 @@ function clear (){
     measures = [];
     for (i=scene.children.length - 1; i > 0; --i){
         obj = scene.children[i]
-        if (!((obj === mesh)||(obj === mesh_click)||(obj === root_helper_object))){
-            scene.remove(obj);
-        }
+        //if (!((obj === mesh)||(obj === mesh_click)||(obj === root_helper_object))){scene.remove(obj);}
+        scene.remove(obj);
     }
 }
 
@@ -304,6 +305,9 @@ function init() {
         var overlay_container = document.getElementById('overlay_container');
         overlay_container.className = "hide";
         var main_container = document.getElementById("container")
+        for (i=0; i<features.length; ++i){
+            features[i].visible = true;
+        };
         main_container.className = "show";
     });
 
@@ -384,12 +388,13 @@ function get_links( pano_id) {
     gui.destroy()
     gui = new dat.GUI();
     this[pano_id] = function () {
-        console.log('baubau');
+        console.log('pano_id');
     }
     gui.add(this, pano_id).name(pano_id);
     this.check_tracker_map = true;
     this.quality = quality_factor;
     this.border = border_amount;
+    this.remove_measures = true;
     gui.add(this, "check_tracker_map", true).name("Show tracker map").onChange(function (value) {
         if (value)
             document.getElementById("tracker_map").className = "show";
@@ -416,15 +421,19 @@ function get_links( pano_id) {
             mesh_click.material = material_invisible;
         }
     });
-    gui.add(this, "quality").min(1).max(6).step(1).name("Pano_quality").onChange(function (value) {
+    gui.add(this, "quality").min(1).max(5).step(1).name("Pano quality").onChange(function (value) {
         quality_factor = value;
         build_pano( pano_id )
     });
-    gui.add(this, "border").min(0).max(0.6).step(0.1).name("Border_amount").onChange(function (value) {
+    gui.add(this, "border").min(0).max(0.5).step(0.1).name("Border amount").onChange(function (value) {
         border_amount = value;
     });
 
     gui.add(this, "clear").name("Clear measures");
+
+    gui.add(this, "remove_measures", false).name("No measures").onChange(function (value) {
+        without_measures = value
+    });
 
     gui.add(this, "straighten_view").name("Straighten");
 
@@ -486,10 +495,8 @@ function build_pano( pano_id ) {
 
     //toDataUrl("http://172.25.193.167/jpann/point2.png", function(base64Img) {console.log(base64Img);});
 
-    document.getElementById('info').innerHTML = "PANOID: "+pano_id
-    
-    clear();
-    get_links(pano_id);
+    //document.getElementById('info').innerHTML = "PANOID: "+pano_id
+    document.getElementById("progress_icon").className = "show";
 
     var pano_loader = new PANOMNOM.GoogleStreetViewLoader();
     var depth_loader = new GSVPANO.PanoDepthLoader();
@@ -500,6 +507,8 @@ function build_pano( pano_id ) {
             if (status === google.maps.StreetViewStatus.OK) {
                 //pano_loader.load(new google.maps.LatLng(data.location.latLng.lat(), data.location.latLng.lng()));
                 pano_loader.load( pano_id, quality_factor );
+                console.log('LOCATION lat lon:',data.location.latLng.lat(),data.location.latLng.lng());
+                get_links(pano_id);
                 tracker_map.setCenter({
                     lat: data.location.latLng.lat(),
                     lng: data.location.latLng.lng()
@@ -521,6 +530,7 @@ function build_pano( pano_id ) {
 
     pano_loader.addEventListener( 'load', function() {
         console.log("pano_loaded_start");
+        clear();
 
         var pano_container = document.getElementById('pano_container');
         while (pano_container.firstChild) {
@@ -664,6 +674,7 @@ function build_pano( pano_id ) {
         }
 
         console.log("depth_loaded_end");
+        document.getElementById("progress_icon").className = "hide";
 
     }
 
@@ -707,7 +718,7 @@ function onDocumentDblclick( event ) {
         var measure_line = new THREE.Line3( measures[idx2].true_point, measures[idx1].true_point );
         var view_line = new THREE.Line3( measures[idx2].view_point, measures[idx1].view_point );
         distances.push(measure_line.distance()*6/9.73);
-        var measure_text = new SpriteText2D((measure_line.distance()*6/9.73).toFixed(2), {align: textAlign.right, font: '16px Arial', fillStyle: '#00ff00' });
+        var measure_text = new SpriteText2D((measure_line.distance()*6/9.73).toFixed(2), {align: textAlign.right, font: 'bold 12px Arial', fillStyle: '#00ff00' });
         measure_text.position.set (view_line.center().x,view_line.center().y,view_line.center().z);
         measure_text.name = "measure_text";
         scene.add(measure_text);
@@ -750,18 +761,19 @@ function onDocumentDblclick( event ) {
         scene.add( puntatore1 );
         scene.add( puntatore2 );
         features.push(puntatore1);
-
         var SpriteText2D = THREE_Text.SpriteText2D;
         var textAlign = THREE_Text.textAlign;
         console.log(depth_img.getImageData(map_x, map_y, 1, 1).data);
-    
-        var depth_txt = depth_img.getImageData(map_x, map_y, 1, 1).data.toString();
-        var depth_txt = relative_positions[map_y][map_x].d.toFixed(2).toString();
-        var text2 = new SpriteText2D(depth_txt, {/*align: textAlign.right,*/ font: '12px Arial', fillStyle: '#ff0000' });
-        text2.position.set(intersect[0].point.x,intersect[0].point.y,intersect[0].point.z);
-        text2.name = "text2";
-        scene.add(text2);
-        features.push(text2);
+
+        //code block for writing depth (distance from the actual point of view) as threejs text object
+        //leaved here for debug pourpuse
+        ///var depth_txt = relative_positions[map_y][map_x].d.toFixed(2).toString();
+        //var text2 = new SpriteText2D(depth_txt, {align: textAlign.right, font: '12px Arial', fillStyle: '#ff0000' });
+        //text2.position.set(intersect[0].point.x,intersect[0].point.y,intersect[0].point.z);
+        //text2.name = "text2";
+        //scene.add(text2);
+        //features.push(text2);
+        
         measures.push({true_point:relative_positions[map_y][map_x],view_point:intersect[0].point});
         console.log(measures.length);
     }

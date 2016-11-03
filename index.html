@@ -12,14 +12,15 @@
         <div id="pano_container" class="hide"></div>
         <div id="depth_container" class="hide"></div>
         <div id="tracker_map" class="show"></div>
+        <div id="progress_icon" class="show"></div>
         <div id="overlay_container" class="hide">
- 		<a class="boxclose" id="boxclose"></a>
-        <a class="boxsave" id="boxsave"></a>
+ 		<div id="boxbtn" >
+            <button class="btn" id='boxclose'>Close</button>
+            <button class="btn" id='boxsave'>Save</button>     
+        </div>
         <div id="pattern_container"></div>
         </div>
-        <div id="info">
-            <a href="http://threejs.org" target="_blank">three.js webgl</a> - equirectangular panorama demo
-        </div>
+        <div id="_info"></div>
         <div id="input_feedback" class="hide">Location not found</div>
         <input id="input_ctrl" type="text" class="hide" placeholder="Search anywhere.." onkeydown="" onchange="">
 
