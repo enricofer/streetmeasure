@@ -31,6 +31,7 @@ var border_amount = 0.1;
 var v_x = 0.1;
 var v_y = 0.1;
 var v_z = 0.1;
+var location_desc = "";
 
 var show_pano = false;
 var show_depth = false;
@@ -46,7 +47,7 @@ var material_invisible, material_grid, material_visible;
 
 var isUserInteracting = false,
     onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-    lon = parseFloat(heading), onMouseDownLon = 0,
+    lon = (90  + parseFloat(heading)), onMouseDownLon = 0,
     lat = 0, onMouseDownLat = 0,
     phi = 0, theta = 0;
 
@@ -396,12 +397,13 @@ function init() {
 function get_links( pano_id) {
     gui.destroy()
     gui = new dat.GUI();
+    /* leaved for debug purpose
     this[pano_id] = function () {
         console.log('pano_id');
     }
     gui.add(this, pano_id).name(pano_id);
-    this.heading = heading;
-    /* leaved for debug purpose
+    this.lon = lon;
+    gui.add(this, "lon").name("Lon").listen();
     this.v_x = v_x;
     this.v_y = v_y;
     this.v_z = v_y;
@@ -409,6 +411,9 @@ function get_links( pano_id) {
     gui.add(this, "v_y").name("V_y").listen();
     gui.add(this, "v_z").name("V_z").listen();
     */
+    this.loc = location_desc;
+    gui.add(this, "loc").name("Location").listen();
+    this.heading = heading;
     gui.add(this, "heading").name("Heading").listen();
     this.check_tracker_map = true;
     this.quality = quality_factor;
@@ -458,6 +463,7 @@ function get_links( pano_id) {
 
     gsv.getPanorama({pano:pano_id},function (data,status){
         console.log(data.links);
+        location_desc = data.location.description;
         var f1 = gui.addFolder('Links');
         var gui_links = {}
 
@@ -873,8 +879,8 @@ function update() {
         //v_x = camera.target.x;
         //v_y = camera.target.y;
         //v_z = camera.target.z;
-        var actual_bearing = THREE.Math.radToDeg(Math.atan2(actual_bearing_vector.x,actual_bearing_vector.z)-Math.PI/2);
-        if (actual_bearing < 0) {actual_bearing = 360 + actual_bearing};
+        var actual_bearing = THREE.Math.radToDeg(Math.atan2(actual_bearing_vector.x,actual_bearing_vector.z));
+        if (actual_bearing > 0) {actual_bearing = 360 - actual_bearing} else {actual_bearing = - actual_bearing};
         var actual_bearing_txt = actual_bearing.toFixed(2).toString();
         heading = actual_bearing_txt;
     }

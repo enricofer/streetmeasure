@@ -16,6 +16,9 @@ start with panoid parameter if known
     http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA
 or lon and lat parameters
     https://enricofer.github.io/streetmeasure/?lat=45.39245781749395&lon=11.871457844297083
+and/or optional heading parameter in degrees (default 0)
+    http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA&heading=90
+    
 
 If the provided panoid is valid or the requested lon and lat is covered by google street view service, will be loaded the panorama location as equirectangular projection on witch is possible to obtain measures on the panorama. Double clicking on panorama makes a measurement point. With further double clicks distances (meters) between measurements points are obtained. 
 
