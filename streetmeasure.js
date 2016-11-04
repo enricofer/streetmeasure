@@ -7,6 +7,7 @@ var relative_positions;
 var mesh, mesh_click;
 var without_measures = true;
 var fx_image;
+var compass = 0;
 var tracker_map,tracker_marker;
 var root_object = 0, root_helper_object = 0;
 var textureLoader = new THREE.TextureLoader();
@@ -20,12 +21,16 @@ var point2_texture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYA
 var req_pano_id = gup('panoid');
 var req_lon = gup('lon');
 var req_lat = gup('lat');
+var req_heading = gup('heading');
+if (req_heading == ""){var heading = "0.00"} else {var heading = req_heading}
 var gsv = new google.maps.StreetViewService();
 var pid;
 var gui = new dat.GUI();
 var quality_factor = 2;
 var border_amount = 0.1;
-
+var v_x = 0.1;
+var v_y = 0.1;
+var v_z = 0.1;
 
 var show_pano = false;
 var show_depth = false;
@@ -41,9 +46,13 @@ var material_invisible, material_grid, material_visible;
 
 var isUserInteracting = false,
     onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-    lon = 0, onMouseDownLon = 0,
+    lon = parseFloat(heading), onMouseDownLon = 0,
     lat = 0, onMouseDownLat = 0,
     phi = 0, theta = 0;
+
+
+//var tx = Math.cos(THREE.Math.degToRad(90+parseFloat(heading)));
+//var ty = Math.sin(THREE.Math.degToRad(90+parseFloat(heading)));
 
 init();
 animate();
@@ -391,6 +400,16 @@ function get_links( pano_id) {
         console.log('pano_id');
     }
     gui.add(this, pano_id).name(pano_id);
+    this.heading = heading;
+    /* leaved for debug purpose
+    this.v_x = v_x;
+    this.v_y = v_y;
+    this.v_z = v_y;
+    gui.add(this, "v_x").name("V_x").listen();
+    gui.add(this, "v_y").name("V_y").listen();
+    gui.add(this, "v_z").name("V_z").listen();
+    */
+    gui.add(this, "heading").name("Heading").listen();
     this.check_tracker_map = true;
     this.quality = quality_factor;
     this.border = border_amount;
@@ -546,7 +565,7 @@ function build_pano( pano_id ) {
         }
 
         camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1100 );
-        camera.target = new THREE.Vector3( 0, 0, 0 );
+        camera.target = new THREE.Vector3( 0, 0, 0);
 
         var geometry = new THREE.SphereGeometry( 500, 120, 80 );
         geometry.scale( -1, 1, 1 );
@@ -818,7 +837,7 @@ function onDocumentMouseUp( event ) {
 
 function onDocumentMouseWheel( event ) {
 
-    camera.fov += event.deltaY * 0.75;
+    camera.fov += event.deltaY * 0.25;
     camera.updateProjectionMatrix();
 
 }
@@ -850,5 +869,13 @@ function update() {
         camera.lookAt( camera.target );
 
         renderer.render( scene, camera );
+        var actual_bearing_vector = camera.getWorldDirection();
+        //v_x = camera.target.x;
+        //v_y = camera.target.y;
+        //v_z = camera.target.z;
+        var actual_bearing = THREE.Math.radToDeg(Math.atan2(actual_bearing_vector.x,actual_bearing_vector.z)-Math.PI/2);
+        if (actual_bearing < 0) {actual_bearing = 360 + actual_bearing};
+        var actual_bearing_txt = actual_bearing.toFixed(2).toString();
+        heading = actual_bearing_txt;
     }
 }
