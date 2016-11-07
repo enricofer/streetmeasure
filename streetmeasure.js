@@ -27,7 +27,7 @@ var gsv = new google.maps.StreetViewService();
 var pid;
 var gui = new dat.GUI();
 var quality_factor = 2;
-var border_amount = 0.1;
+var border_amount = 0.2;
 var v_x = 0.1;
 var v_y = 0.1;
 var v_z = 0.1;
@@ -40,6 +40,11 @@ var measures = [];
 var distances = [];
 var features = [];
 var plan_definition;
+var measure_factor = 9.73; //9.73; //metric measurement factor. Determined empirically from direct observation.
+var photographerHeading = 180;
+var sv_obj;
+google.maps.event.addDomListener(window, "load", function (){ 
+});
 
 var camera, scene, renderer;
         
@@ -283,7 +288,14 @@ function clear (){
 }
 
 function init() {
-    
+
+
+    sv_obj = new google.maps.StreetViewPanorama(document.getElementById("sv"));
+    google.maps.event.addListener(sv_obj, 'position_changed', function() {
+        photographerHeading = sv_obj.getPhotographerPov().heading;
+        lon = (parseFloat(heading) - (photographerHeading - 180))
+    });   
+
     // hack Google Maps to bypass API v3 key (needed since 22 June 2016 http://googlegeodevelopers.blogspot.com.es/2016/06/building-for-scale-updates-to-google.html)
     var target = document.head;
     var observer = new MutationObserver(function(mutations) {
@@ -397,6 +409,7 @@ function init() {
 function get_links( pano_id) {
     gui.destroy()
     gui = new dat.GUI();
+    gui.domElement.id = 'gui';
     /* leaved for debug purpose
     this[pano_id] = function () {
         console.log('pano_id');
@@ -410,6 +423,8 @@ function get_links( pano_id) {
     gui.add(this, "v_x").name("V_x").listen();
     gui.add(this, "v_y").name("V_y").listen();
     gui.add(this, "v_z").name("V_z").listen();
+    this.photographerHeading = photographerHeading;
+    gui.add(this, "photographerHeading").name("True heading").listen();
     */
     this.loc = location_desc;
     gui.add(this, "loc").name("Location").listen();
@@ -419,6 +434,7 @@ function get_links( pano_id) {
     this.quality = quality_factor;
     this.border = border_amount;
     this.remove_measures = true;
+    this.measure_factor = measure_factor;
     gui.add(this, "check_tracker_map", true).name("Show tracker map").onChange(function (value) {
         if (value)
             document.getElementById("tracker_map").className = "show";
@@ -444,6 +460,11 @@ function get_links( pano_id) {
         else {
             mesh_click.material = material_invisible;
         }
+    });
+    //gui.add(this, "measure_factor",{ meters: 9.73, feet: 2.966}).name("Units").onChange(function (value) {
+    gui.add(this, "measure_factor",{ meters: 9.73, feet: 2.966}).name("Units").onChange(function (value) {
+        clear();
+        measure_factor = value;
     });
     gui.add(this, "quality").min(1).max(5).step(1).name("Pano quality").onChange(function (value) {
         quality_factor = value;
@@ -503,7 +524,7 @@ function get_links( pano_id) {
             helper_mesh.userData = link.pano;
             if (link.heading > 0) {var heading = link.heading} else {var heading = 360 + link.heading}
              
-            helper_geometry_base.rotation.y = heading * Math.PI / 180.0;
+            helper_geometry_base.rotation.y = (heading - (photographerHeading - 180)) * Math.PI / 180.0;
             helper_geometry_base.add(helper_mesh);
             root_helper_object.add(helper_geometry_base);
             if (old_root_helper_object) {
@@ -518,7 +539,6 @@ function get_links( pano_id) {
 
 function build_pano( pano_id ) {
 
-    //toDataUrl("http://172.25.193.167/jpann/point2.png", function(base64Img) {console.log(base64Img);});
 
     //document.getElementById('info').innerHTML = "PANOID: "+pano_id
     document.getElementById("progress_icon").className = "show";
@@ -530,7 +550,8 @@ function build_pano( pano_id ) {
     gsv.getPanoramaById(pano_id,
         function (data, status) {
             if (status === google.maps.StreetViewStatus.OK) {
-                //pano_loader.load(new google.maps.LatLng(data.location.latLng.lat(), data.location.latLng.lng()));
+                //sv_obj = google.maps.StreetViewPanorama("sv",{position:data.location.latLng});
+                sv_obj.setPano(pano_id);
                 pano_loader.load( pano_id, quality_factor );
                 console.log('LOCATION lat lon:',data.location.latLng.lat(),data.location.latLng.lng());
                 get_links(pano_id);
@@ -620,7 +641,6 @@ function build_pano( pano_id ) {
         canvas.setAttribute('height', this.depthMap.height);
         var image = context.getImageData(0, 0, this.depthMap.width, this.depthMap.height);
         for (var y = 0; y < this.depthMap.height; ++y) {
-            //for (var x = this.depthMap.width; x > 0 ; --x) {
             for (var x = 0; x < this.depthMap.width ; ++x) {
                 var col = this.depthMap.depthMap[y * this.depthMap.width - x] / 50 * 255;
                 image.data[4 * (y * this.depthMap.width + x) + 0] = col;
@@ -724,7 +744,7 @@ function onWindowResize() {
 
 function onDocumentMouseDown( event ) {
 
-    event.preventDefault();
+    //event.preventDefault();
 
     isUserInteracting = true;
 
@@ -750,8 +770,8 @@ function onDocumentDblclick( event ) {
     function dist_line (idx1,idx2) {
         var measure_line = new THREE.Line3( measures[idx2].true_point, measures[idx1].true_point );
         var view_line = new THREE.Line3( measures[idx2].view_point, measures[idx1].view_point );
-        distances.push(measure_line.distance()*6/9.73);
-        var measure_text = new SpriteText2D((measure_line.distance()*6/9.73).toFixed(2), {align: textAlign.right, font: 'bold 12px Arial', fillStyle: '#00ff00' });
+        distances.push(measure_line.distance()*6/measure_factor);
+        var measure_text = new SpriteText2D((measure_line.distance()*6/measure_factor).toFixed(2), {align: textAlign.right, font: 'bold 12px Arial', fillStyle: '#00ff00' });
         measure_text.position.set (view_line.center().x,view_line.center().y,view_line.center().z);
         measure_text.name = "measure_text";
         scene.add(measure_text);
@@ -879,8 +899,10 @@ function update() {
         //v_x = camera.target.x;
         //v_y = camera.target.y;
         //v_z = camera.target.z;
-        var actual_bearing = THREE.Math.radToDeg(Math.atan2(actual_bearing_vector.x,actual_bearing_vector.z));
+        var actual_bearing = THREE.Math.radToDeg(Math.atan2(actual_bearing_vector.x,actual_bearing_vector.z)) - photographerHeading - 270; 
         if (actual_bearing > 0) {actual_bearing = 360 - actual_bearing} else {actual_bearing = - actual_bearing};
+        if (actual_bearing > 360) {actual_bearing = actual_bearing - 360}
+
         var actual_bearing_txt = actual_bearing.toFixed(2).toString();
         heading = actual_bearing_txt;
     }

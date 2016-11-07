@@ -241,3 +241,7 @@ h2 {
     right:0px;
     z-index:999;
 }
+
+#gui{
+    z-index:500;
+}
