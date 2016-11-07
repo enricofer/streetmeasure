@@ -12,28 +12,27 @@ It is built on top of @callumprentice [works](http://callumprentice.github.io/) 
 
 
 ## usage ##
-start with panoid parameter if known
-    http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA
-or lon and lat parameters
-    https://enricofer.github.io/streetmeasure/?lat=45.39245781749395&lon=11.871457844297083
-and/or optional heading parameter in degrees (default 0)
-    http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA&heading=90
+- start with panoid parameter if known:
+     `http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA`
+- or lon and lat parameters: 
+     `https://enricofer.github.io/streetmeasure/?lat=45.39245781749395&lon=11.871457844297083`
+- and/or optional heading parameter in degrees (default 0): `http://enricofer.github.io/streetmeasure/?panoid=cFR_vriBYmaHXq6-SctOxA&heading=90`
     
 
 If the provided panoid is valid or the requested lon and lat is covered by google street view service, will be loaded the panorama location as equirectangular projection on witch is possible to obtain measures on the panorama. Double clicking on panorama makes a measurement point. With further double clicks distances (meters) between measurements points are obtained. 
 
 Four measurements points shape an extraction polygon assumed to be a rectangle in the reality used as guide for straightening the panorama image. The points for a right image processing must be provided counterclockwise from bottom/left to bottom/right to top/right to top/left.
 
-Double clicking on tracker map or on arrows on screen to move panorama without leaving the application.
+Double clicking on tracker map or on arrows on screen to move panorama location without leaving the application.
 
 ![](doc/screen1.png)
 
 On the right there is a menu with the following function:
 
-- Show on/off the top left tracker map panel
-- Show on/off the middle left equirectangular panorama image panel
-- Show on/off the bottom left equirectangular depth map image panel
-- Show on/off the depth map image projected over the panorama image (measurements are possible only where there a 3d model covering of the sample point)
+- *Show* on/off the top left tracker map panel
+- *Show* on/off the middle left equirectangular panorama image panel
+- *Show* on/off the bottom left equirectangular depth map image panel
+- *Show* on/off the depth map image projected over the panorama image (measurements are possible only where there a 3d model covering of the sample point)
 - *Pano_quality* to choose between best resolution (5) and performance (1)
 - *Border_amount* to determine how much image to be straighten around the four measurements points
 - *Clear_measures* to clear measures from screen
@@ -43,4 +42,4 @@ On the right there is a menu with the following function:
 ![](doc/screen2.png)
 
 ## Licence ##
-The procedures used in the app broke almost all Google Streetview service terms of use so I hope no one will use it on production. It's just a game.
+The procedures used in the app broke almost all Google Streetview service terms of use so I hope no one will use it in production. It's just a game.
