@@ -42,4 +42,4 @@ On the right there is a menu with the following function:
 ![](doc/screen2.png)
 
 ## Licence ##
-The procedures used in the app broke almost all Google Streetview service terms of use so I hope no one will use it in production. It's just a game.
+The procedures used in the app break almost all Google Streetview service terms of use so I hope no one will use it in production. It's just a game.
